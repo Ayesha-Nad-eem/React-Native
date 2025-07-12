@@ -1,11 +1,16 @@
 import { Text, View } from "react-native";
- 
+import LittleLemonHeader from "./LittleLemonHeader";
+import Footer from "./Footer";
+import Welcome from "./Welcome";
+import MenuItems from "./menuItems";
+
 export default function App() {
   return (
-    <View className="flex-1 items-center justify-center bg-yellow-300">
-      <Text className="text-xl font-bold text-blue-500">
-        Welcome to Nativewind!
-      </Text>
+    <View className="header">
+      <LittleLemonHeader />
+      <Welcome />
+      {/* <MenuItems /> */}
+      <Footer />
     </View>
   );
 }
