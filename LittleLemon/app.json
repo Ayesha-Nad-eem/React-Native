@@ -16,8 +16,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.ayeshanadeem1.ReactNatuve"
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",

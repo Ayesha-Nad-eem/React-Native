@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
 
-export default function Footer() {
+export default function footer() {
     return (
         <View className="lemon-footer">
             <Text className="lemon-footer-text">

@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.header {
+  @apply flex-1 flex-col bg-[#495E57];
+}
+
+.lemon-header {
+  @apply bg-[#fdda28] h-[130px] w-full justify-center items-center;
+}
+
+.lemon-header-text {
+  @apply p-10 text-3xl text-black;
+}
+
+.lemon-footer{
+    @apply bg-[#F4CE14] h-[50px] w-full justify-center items-center mt-auto;
+}
+
+.lemon-footer-text {
+  @apply text-center text-gray-500 p-4;
+}
+
+.welcome{
+    @apply text-white text-[30px] font-bold text-center p-4;
+}
+.welcome-para{
+    @apply text-white text-[24px] text-center p-2;
+}
