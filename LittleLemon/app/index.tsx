@@ -1,12 +1,9 @@
+import { Link } from "expo-router";
 import { Text, View } from "react-native";
 import LittleLemonHeader from "./LittleLemonHeader";
 import Welcome from "./Welcome";
 import Footer from "./footer";
-import Menu from "./menu";
-import FeedbackForm from "./feedbackForm";
-import LoginScreen from "./loginPage";
-
-import Login from "../components/login";
+import Login from "./login";
 
 export default function App() {
   return (
@@ -15,14 +12,12 @@ export default function App() {
     //   <Welcome />
     //   {/* <Menu /> */}
     //   {/* <LoginScreen /> */}
-
     //   <Footer />
     //   {/* <FeedbackForm /> */}
     // </View>
 
-    <View>
+    <View className="header">
       <Login />
-      
     </View>
   );
 }
