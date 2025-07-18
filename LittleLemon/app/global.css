@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 .header {
-  @apply flex-1 flex-col bg-[#495E57];
+  @apply flex-1 flex-col bg-gray-400;
 }
 
 .lemon-header {
@@ -15,16 +15,46 @@
 }
 
 .lemon-footer{
-    @apply bg-[#F4CE14] h-[50px] w-full justify-center items-center mt-auto;
+    @apply bg-[#fdda28] h-[40px] w-full justify-center items-center mt-auto;
 }
 
 .lemon-footer-text {
-  @apply text-center text-gray-500 p-4;
+  @apply text-center text-gray-500 p-2;
 }
 
 .welcome{
-    @apply text-white text-[30px] font-bold text-center p-4;
+    @apply text-white text-[35px] font-bold text-center p-4;
 }
 .welcome-para{
     @apply text-white text-[24px] text-center p-2;
+}
+
+.menu-item{
+    @apply text-white text-[20px] p-2 border-2 border-[#fdda28] rounded-lg m-2 bg-[#333333] flex-row justify-between;
+}
+
+.menu-item-text{
+    @apply text-white text-[16px] p-2;
+}
+
+.section-header {
+    @apply text-black text-center text-[24px] font-bold p-2 bg-[#fdda28];
+}
+
+.input-field {
+    @apply border border-gray-300 rounded-lg p-4 text-base mb-4 bg-gray-50;
+}
+
+.container {
+    @apply flex-1 p-4;
+}
+
+.menu-button {
+    @apply bg-[#fdda28] text-black py-2 px-4 rounded-3xl m-2 w-[200px];
+}
+.menu-button-text {
+    @apply text-center text-[24px] font-semibold;
+}
+.image {
+    @apply w-[100px] h-[100px] rounded-[20];
 }
