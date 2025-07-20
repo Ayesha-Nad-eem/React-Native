@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 .header {
-  @apply flex-1 flex-col bg-gray-200;
+  @apply flex-1 flex-col bg-gray-200 dark:bg-[#1E1E1E];
 }
 /*
 .lemon-header {
@@ -58,22 +58,24 @@
 .image {
     @apply w-[100px] h-[100px] rounded-[20];
 } */
+@custom-variant dark (&:where(.dark,.dark *));
 
 .login-title {
-    @apply text-gray-900 text-[35px] font-bold text-center p-4;
+    @apply text-blue-700 dark:text-white text-[35px] font-bold text-center p-4;
 }
 
 .input-field {
-    @apply border border-blue-600 rounded-lg p-4 text-base mb-4 bg-gray-50;
+    @apply border border-blue-600 dark:border-purple-500 rounded-2xl p-4 text-base mb-4  bg-gray-50 dark:bg-gray-800 dark:text-gray-400;
 }
 
 .btn {
-    @apply bg-blue-600 py-2 px-4 rounded-3xl m-2 w-[200px];
+    @apply bg-blue-600 dark:bg-purple-500 py-2 px-4 rounded-full m-2 w-[220px];
 }
 
 .btn-txt {
-    @apply text-center text-white text-[16px] font-semibold p-2;
+    @apply text-center text-white dark:text-purple-950 text-[16px] p-1;
 }
 .container {
-    @apply flex-1 p-4 border-[3px] border-gray-300 rounded-2xl bg-white m-[200px];
+  @apply p-4 border-[1px] border-gray-300 rounded-2xl dark:bg-[#121212]   bg-white w-full max-w-md dark:border-[#1E1E1E];
 }
+
