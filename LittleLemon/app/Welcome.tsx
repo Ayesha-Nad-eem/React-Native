@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { View, Text, ScrollView, Image, useColorScheme,useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Image, useColorScheme, useWindowDimensions, Pressable } from 'react-native';
+import { router } from 'expo-router';
 
 export default function Welcome() {
   const colorScheme = useColorScheme();

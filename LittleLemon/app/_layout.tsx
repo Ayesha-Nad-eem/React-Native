@@ -9,8 +9,17 @@ export default function RootLayout() {
     <View className="flex-1">
       <LittleLemonHeader />
       <Stack screenOptions={{ headerShown: false }} initialRouteName="loginPage">
-        <Stack.Screen name="Welcome" />
-        <Stack.Screen name="loginPage" />
+        <Stack.Screen name="Welcome"
+          options={{
+            headerShown: true,
+            title: "Welcome",
+            headerBackTitle: "Back"
+          }} />
+        <Stack.Screen name="loginPage"
+          options={{
+            headerShown: true,
+            title: "Login",
+          }} />
       </Stack>
       <LittleLemonFooter />
     </View>

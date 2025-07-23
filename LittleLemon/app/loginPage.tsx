@@ -1,16 +1,23 @@
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View, Alert, Pressable } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { router } from 'expo-router';
 
 export default function LoginScreen() {
   const [email, onChangeEmail] = useState('');
   const [password, onChangePassword] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
 
+  // Reset login state when component mounts
+  useEffect(() => {
+    setLoggedIn(false);
+    onChangeEmail('');
+    onChangePassword('');
+  }, []);
+
   return (
     <ScrollView className='flex-1'>
       <Text className='welcome'>Welcome to Little Lemon</Text>
-      {!loggedIn && (
-        <>
+     
           <Text className='welcome-para'>Login to continue </Text>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
@@ -43,6 +50,8 @@ export default function LoginScreen() {
                 if (email && password) {
                   setLoggedIn(true);
                   Alert.alert('Login Successful', `Welcome back, ${email}!`);
+                  // Navigate to Welcome screen after login
+                  router.push('/Welcome');
                 } else {
                   Alert.alert('Login Failed', 'Please enter both email and password.');
                 }
@@ -50,14 +59,6 @@ export default function LoginScreen() {
               <Text className='menu-button-text'>Login</Text>
             </Pressable>
           </View>
-        </>
-      )}
-      {loggedIn && (
-        <View className='p-4'>
-          <Text className='welcome'>You are logged in!</Text>
-          <Text className='welcome-para'>Enjoy exploring our menu and services.</Text>
-        </View>
-      )}
     </ScrollView>
   );
 }
