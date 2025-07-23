@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SectionList, Text, View, Pressable } from 'react-native';
+import { Pressable, SectionList, Text, View } from 'react-native';
 
 const menuItemsToDisplay = [
   {

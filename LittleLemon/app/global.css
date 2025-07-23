@@ -3,10 +3,10 @@
 @tailwind utilities;
 
 .header {
-  @apply flex-1 flex-col bg-gray-200 dark:bg-[#1E1E1E];
+  @apply flex-1 flex-col bg-gray-200;
 }
-/*
-.lemon-header {
+
+ .lemon-header {
   @apply bg-[#fdda28] h-[130px] w-full justify-center items-center;
 }
 
@@ -57,7 +57,8 @@
 }
 .image {
     @apply w-[100px] h-[100px] rounded-[20];
-} */
+}
+
 @custom-variant dark (&:where(.dark,.dark *));
 
 .login-title {
@@ -65,17 +66,24 @@
 }
 
 .input-field {
-    @apply border border-blue-600 dark:border-purple-500 rounded-2xl p-4 text-base mb-4  bg-gray-50 dark:bg-gray-800 dark:text-gray-400;
+    @apply border border-blue-600 dark:border-purple-500 rounded-full p-4 text-base mb-4  bg-gray-50;
 }
 
 .btn {
-    @apply bg-blue-600 dark:bg-purple-500 py-2 px-4 rounded-full m-2 w-[220px];
+    @apply bg-blue-600 dark:bg-purple-500 py-2 px-4 rounded-full m-2 w-[180px];
 }
 
 .btn-txt {
     @apply text-center text-white dark:text-purple-950 text-[16px] p-1;
 }
 .container {
-  @apply p-4 border-[1px] border-gray-300 rounded-2xl dark:bg-[#121212]   bg-white w-full max-w-md dark:border-[#1E1E1E];
+  @apply p-4 border-[1px] border-gray-300 rounded-2xl dark:bg-gray-900   bg-white w-full max-w-md;
 }
 
+.welcome {
+    @apply text-blue-700 dark:text-white text-[35px] font-bold text-center p-4;
+}
+
+.welcome-para {
+    @apply text-blue-600 dark:text-gray-300 text-[18px] text-center p-2;
+}
