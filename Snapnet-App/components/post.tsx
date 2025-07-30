@@ -91,7 +91,7 @@ export default function Post({ post }: PostProp) {
           <TouchableOpacity onPress={handleLike}>
             <Ionicons name={isLiked ? "heart" : "heart-outline"} size={22} color={isLiked ? COLORS.primary : COLORS.white} />
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowComments(true)}>
             <Ionicons name="chatbubble-outline" size={22} color={COLORS.white} />
           </TouchableOpacity>
         </View>
