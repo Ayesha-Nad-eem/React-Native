@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity } from 'react-native'
-import React from 'react'
+import React, { use } from 'react'
 import { styles } from '@/styles/feed.styles'
 import { Link } from 'expo-router'
 import { Image } from 'expo-image'
@@ -10,6 +10,8 @@ import { useState } from 'react'
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import CommentsModel from './commentsmodel'
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow'
+import { useUser } from '@clerk/clerk-react'
 
 
 type PostProp = {
@@ -33,14 +35,18 @@ type PostProp = {
 export default function Post({ post }: PostProp) {
 
   const [isLiked, setIsLiked] = useState(post.isLiked);
-
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
-
   const [likesCount, setLikesCount] = useState(post.likes);
   const [commentsCount, setCommentsCount] = useState(post.comments);
   const [showComments, setShowComments] = useState(false);
 
+  const { user } = useUser();
+  const currentUser = useQuery(api.users.getUserByClerkId, user ? { clerkId: user?.id } : "skip");
+
   const toggleLike = useMutation(api.posts.toggleLike);
+  const toggleBookmark = useMutation(api.bookmarks.toggleBookmark);
+  const deletePost =useMutation(api.posts.deletePost);
+
   const handleLike = async () => {
     try {
       const newIsLiked = await toggleLike({ postId: post._id });
@@ -50,6 +56,20 @@ export default function Post({ post }: PostProp) {
       console.error("Error toggling like:", error);
     }
   };
+
+  const handleBookmark = async () => {
+    const newIsBookmarked = await toggleBookmark({ postId: post._id });
+    setIsBookmarked(newIsBookmarked);
+  };
+
+  const handleDeletePost= async ()=>{
+    try {
+      await deletePost({postId:post._id});
+    } catch (error) {
+      console.error("Error deleting post: ", error);
+    }
+  }
+
   return (
     <View style={styles.post}>
       <View style={styles.postHeader}>
@@ -66,13 +86,15 @@ export default function Post({ post }: PostProp) {
           </TouchableOpacity>
         </Link>
 
-        {/* <TouchableOpacity>
-                <Ionicons name ="ellipsis-horizontal" size={20} color={COLORS.white} />
-            </TouchableOpacity> */}
-
-        <TouchableOpacity>
-          <Ionicons name="trash-outline" size={20} color={COLORS.primary} />
-        </TouchableOpacity>
+        {String(post.author._id) === String(currentUser?._id) ? (
+          <TouchableOpacity onPress={() => handleDeletePost} accessibilityLabel="Delete post">
+            <Ionicons name="trash-outline" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity>
+            <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.white} />
+          </TouchableOpacity>
+        )}
 
       </View>
 
@@ -96,8 +118,8 @@ export default function Post({ post }: PostProp) {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity>
-          <Ionicons name="bookmark-outline" size={22} color={COLORS.white} />
+        <TouchableOpacity onPress={handleBookmark}>
+          <Ionicons name={isBookmarked ? "bookmark" : "bookmark-outline"} size={22} color={isBookmarked ? COLORS.primary : COLORS.white} />
         </TouchableOpacity>
       </View>
       {/*Post Info*/}
@@ -110,12 +132,15 @@ export default function Post({ post }: PostProp) {
           </View>
         )}
 
-        <TouchableOpacity>
-          <Text style={styles.commentText}>View all 2 comments</Text>
-        </TouchableOpacity>
-        <Text style={styles.timeAgo}>2 hours ago</Text>
+        {commentsCount > 0 && (
+          <TouchableOpacity onPress={() => setShowComments(true)}>
+            <Text style={styles.commentText}>View all {commentsCount} comments</Text>
+          </TouchableOpacity>
+        )}
 
-        <CommentsModel 
+        <Text style={styles.timeAgo}>{formatDistanceToNow(post._creationTime, { addSuffix: true })}</Text>
+
+        <CommentsModel
           postId={post._id}
           visible={showComments}
           onClose={() => setShowComments(false)}
