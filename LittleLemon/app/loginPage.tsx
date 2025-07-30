@@ -5,17 +5,9 @@ import { router } from 'expo-router';
 export default function LoginScreen() {
   const [email, onChangeEmail] = useState('');
   const [password, onChangePassword] = useState('');
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  // Reset login state when component mounts
-  useEffect(() => {
-    setLoggedIn(false);
-    onChangeEmail('');
-    onChangePassword('');
-  }, []);
 
   return (
-    <ScrollView className='flex-1'>
+    <ScrollView className='flex-1 bg-[#9c9c9c]'>
       <Text className='welcome'>Welcome to Little Lemon</Text>
      
           <Text className='welcome-para'>Login to continue </Text>
@@ -48,8 +40,6 @@ export default function LoginScreen() {
               className='menu-button'
               onPress={() => {
                 if (email && password) {
-                  setLoggedIn(true);
-                  Alert.alert('Login Successful', `Welcome back, ${email}!`);
                   // Navigate to Welcome screen after login
                   router.push('/Welcome');
                 } else {

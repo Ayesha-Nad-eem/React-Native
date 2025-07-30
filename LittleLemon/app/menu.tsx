@@ -76,7 +76,7 @@ export default function menu() {
   );
   return (
     <>
-      <View className='flex-1'>
+    <View className='flex-1 bg-[#9c9c9c]'>
         {!showMenu && (
           <Text className='welcome-para'>
             Little Lemon is a charming neighborhood bistro that serves simple food

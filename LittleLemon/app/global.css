@@ -38,7 +38,7 @@
 }
 
 .section-header {
-    @apply text-black text-center text-[24px] font-bold p-2 bg-[#fdda28];
+    @apply text-[#495E57] text-center text-[24px] font-bold p-2 bg-[#fdda28];
 }
 
 .input-field {
@@ -66,7 +66,7 @@
 }
 
 .input-field {
-    @apply border border-blue-600 dark:border-purple-500 rounded-full p-4 text-base mb-4  bg-gray-50;
+    @apply border border-gray-600 dark:border-purple-500 rounded-xl p-4 text-base mb-4  bg-gray-50;
 }
 
 .btn {
@@ -80,10 +80,14 @@
   @apply p-4 border-[1px] border-gray-300 rounded-2xl dark:bg-gray-900   bg-white w-full max-w-md;
 }
 
-.welcome {
+/* .welcome {
     @apply text-blue-700 dark:text-white text-[35px] font-bold text-center p-4;
 }
 
 .welcome-para {
     @apply text-blue-600 dark:text-gray-300 text-[18px] text-center p-2;
+} */
+
+.para{
+    @apply text-white dark:text-gray-300 text-[18px] text-center p-2;
 }
