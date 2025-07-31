@@ -1,7 +1,14 @@
 import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
 import { Webhook } from "svix";
 import { api } from "./_generated/api";
+import { httpAction, mutation } from "./_generated/server";
+
+// Generate upload URL for file uploads
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
 
 const http = httpRouter();
 

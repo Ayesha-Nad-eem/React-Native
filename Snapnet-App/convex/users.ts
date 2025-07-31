@@ -1,6 +1,6 @@
+import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server";
-import { v } from "convex/values";
 
 export const createUser = mutation({
      args: {
@@ -155,3 +155,11 @@ async function updateFollowCounts(ctx: MutationCtx, followerId: Id<"users">, fol
     });
   }
 }
+
+// Get all users for search functionality
+export const getAllUsers = query({
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    return users;
+  },
+});

@@ -62,4 +62,12 @@ export default defineSchema({
         .index("by_post", ["postId"])
         .index("by_user_and_post", ["userId", "postId"]),
 
+    stories: defineTable({
+        userId: v.id("users"),
+        imageUrl: v.string(),
+        storageId: v.id("_storage"),
+        expiresAt: v.number(), // timestamp when story expires (24 hours)
+    }).index("by_user", ["userId"])
+      .index("by_expires", ["expiresAt"]),
+
 });

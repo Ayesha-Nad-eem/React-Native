@@ -12,8 +12,9 @@ import * as MediaLibrary from 'expo-media-library'
 import { Link } from 'expo-router'
 import * as Sharing from 'expo-sharing'
 import React, { useState } from 'react'
-import { Alert, Modal, Platform, Share, Text, TouchableOpacity, View } from 'react-native'
+import { Modal, Platform, Share, Text, TouchableOpacity, View } from 'react-native'
 import CommentsModel from './commentsmodel'
+import { CustomAlert } from './CustomAlert'
 
 
 type PostProp = {
@@ -40,6 +41,10 @@ export default function Post({ post }: PostProp) {
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
   const [showComments, setShowComments] = useState(false);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const { user } = useUser();
   const currentUser = useQuery(api.users.getUserByClerkId, user ? { clerkId: user?.id } : "skip");
@@ -63,27 +68,18 @@ export default function Post({ post }: PostProp) {
   };
 
   const handleDeletePost = async () => {
-    Alert.alert(
-      'Delete Post',
-      'Are you sure you want to delete this post? This action cannot be undone.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deletePost({ postId: post._id });
-            } catch (error) {
-              console.error("Error deleting post: ", error);
-            }
-          },
-        },
-      ]
-    );
+    setShowDeleteAlert(true);
+  };
+
+  const confirmDeletePost = async () => {
+    try {
+      await deletePost({ postId: post._id });
+      setShowSuccessAlert(true);
+    } catch (error) {
+      setErrorMessage("Failed to delete post. Please try again.");
+      setShowErrorAlert(true);
+      console.error("Error deleting post: ", error);
+    }
   };
 
   const handleDownloadImage = async () => {
@@ -91,7 +87,8 @@ export default function Post({ post }: PostProp) {
       // Request permission to access media library
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant permission to save images to your gallery');
+        setErrorMessage('Please grant permission to save images to your gallery');
+        setShowErrorAlert(true);
         return;
       }
 
@@ -103,11 +100,13 @@ export default function Post({ post }: PostProp) {
       const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
       await MediaLibrary.createAlbumAsync('Snapnet', asset, false);
       
-      Alert.alert('Success', 'Image saved to your gallery!');
+      setErrorMessage('Image saved to your gallery!');
+      setShowSuccessAlert(true);
       setShowOptionsModal(false);
     } catch (error) {
       console.error('Error downloading image:', error);
-      Alert.alert('Error', 'Failed to download image');
+      setErrorMessage('Failed to download image');
+      setShowErrorAlert(true);
     }
   };
 
@@ -165,7 +164,8 @@ export default function Post({ post }: PostProp) {
         setShowOptionsModal(false);
       } catch (fallbackError) {
         console.error('Error with fallback sharing:', fallbackError);
-        Alert.alert('Error', 'Failed to share post');
+        setErrorMessage('Failed to share post');
+        setShowErrorAlert(true);
       }
     }
   };
@@ -290,6 +290,54 @@ export default function Post({ post }: PostProp) {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Custom Alerts */}
+      <CustomAlert
+        visible={showDeleteAlert}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        buttons={[
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => {}
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: confirmDeletePost
+          }
+        ]}
+        onClose={() => setShowDeleteAlert(false)}
+      />
+
+      <CustomAlert
+        visible={showSuccessAlert}
+        title="Success"
+        message={errorMessage}
+        buttons={[
+          {
+            text: "OK",
+            style: "default",
+            onPress: () => {}
+          }
+        ]}
+        onClose={() => setShowSuccessAlert(false)}
+      />
+
+      <CustomAlert
+        visible={showErrorAlert}
+        title="Error"
+        message={errorMessage}
+        buttons={[
+          {
+            text: "OK",
+            style: "default",
+            onPress: () => {}
+          }
+        ]}
+        onClose={() => setShowErrorAlert(false)}
+      />
     </View>
   )
 }

@@ -15,6 +15,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   Text,
   TextInput,
   TouchableOpacity,
@@ -42,6 +43,21 @@ export default function Profile() {
     await updateProfile(editedProfile);
     setIsEditModalVisible(false);
   }
+
+  const handleShareProfile = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const shareMessage = `Check out ${currentUser.fullname} (@${currentUser.username}) on Snapnet!\n\n${currentUser.bio ? `About: ${currentUser.bio}\n\n` : ''}📊 Profile Stats:\n• ${currentUser.posts} Posts\n• ${currentUser.followers} Followers\n• ${currentUser.following} Following\n\nJoin Snapnet to connect!`;
+      
+      await Share.share({
+        message: shareMessage,
+        title: `${currentUser.fullname}'s Profile`
+      });
+    } catch (error) {
+      console.error('Error sharing profile:', error);
+    }
+  };
 
   if (!currentUser || posts === undefined) return <Loader />;
 
@@ -96,7 +112,7 @@ export default function Profile() {
             <TouchableOpacity style={styles.editButton} onPress={() => setIsEditModalVisible(true)}>
               <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.shareButton}>
+            <TouchableOpacity style={styles.shareButton} onPress={handleShareProfile}>
               <Ionicons name="share-outline" size={20} color={COLORS.white} />
             </TouchableOpacity>
           </View>
@@ -218,20 +234,23 @@ export default function Profile() {
         animationType="fade"
         transparent={true}
         onRequestClose={() => setSelectedPost(null)}
+        statusBarTranslucent={true}
       >
         <View style={styles.modalBackdrop}>
           {selectedPost && (
             <View style={styles.postDetailContainer}>
-              <View style={styles.postDetailHeader}>
-                <TouchableOpacity onPress={() => setSelectedPost(null)}>
-                  <Ionicons name="close" size={24} color={COLORS.white} />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity 
+                style={styles.postDetailHeader}
+                onPress={() => setSelectedPost(null)}
+              >
+                <Ionicons name="close" size={24} color={COLORS.white} />
+              </TouchableOpacity>
 
               <Image
                 source={selectedPost.imageUrl}
                 cachePolicy={"memory-disk"}
                 style={styles.postDetailImage}
+                contentFit="cover"
               />
             </View>
           )}

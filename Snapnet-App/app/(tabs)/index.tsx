@@ -3,12 +3,13 @@ import Post from "@/components/post";
 import StoriesSection from "@/components/stories";
 import { COLORS } from "@/constants/Theme";
 import { api } from "@/convex/_generated/api";
+import { styles } from "@/styles/feed.styles";
 import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
-import { FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
 import { useState } from "react";
-import { styles } from "@/styles/feed.styles";
+import { FlatList, RefreshControl, Text, TouchableOpacity, View } from "react-native";
 
 
 export default function Index() {
@@ -33,8 +34,8 @@ export default function Index() {
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>snapnet</Text>
-        <TouchableOpacity onPress={() => signOut()}>
-          <Ionicons name="log-out-outline" size={24} color={COLORS.white} />
+        <TouchableOpacity onPress={() => router.push('/search')}>
+          <Ionicons name="search-outline" size={24} color={COLORS.white} />
         </TouchableOpacity>
       </View>
       <FlatList
