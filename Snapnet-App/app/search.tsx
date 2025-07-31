@@ -28,6 +28,7 @@ type User = {
 export default function Search() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const { userId } = useAuth();
   
   // Get all users
   const allUsers = useQuery(api.users.getAllUsers) ?? [];
@@ -38,12 +39,13 @@ export default function Search() {
     } else {
       const filtered = allUsers.filter(
         (user) =>
-          user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.fullname.toLowerCase().includes(searchQuery.toLowerCase())
+          user.clerkId !== userId && // Exclude current user
+          (user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.fullname.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       setFilteredUsers(filtered);
     }
-  }, [searchQuery, allUsers]);
+  }, [searchQuery, allUsers, userId]);
 
   const handleUserPress = (userId: string) => {
     router.push(`/user/${userId}`);
@@ -68,9 +70,6 @@ export default function Search() {
           </Text>
         </View>
       </View>
-      <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followButtonText}>View</Text>
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 

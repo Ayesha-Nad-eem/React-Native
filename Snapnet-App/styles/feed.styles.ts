@@ -110,6 +110,24 @@ export const styles = StyleSheet.create({
     width: width,
     height: width,
   },
+  imageContainer: {
+    position: "relative",
+  },
+  imageWrapper: {
+    position: "relative",
+    width: "100%",
+  },
+  likeAnimationOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+    pointerEvents: "none",
+  },
   postActions: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -2,7 +2,7 @@ import { COLORS } from "@/constants/Theme";
 import React from "react";
 import { Dimensions, Modal, Text, TouchableOpacity, View } from "react-native";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 interface CustomAlertButton {
   text: string;
@@ -49,6 +49,7 @@ export const CustomAlert: React.FC<CustomAlertProps> = ({
       transparent={true}
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
       <View style={styles.overlay}>
         <View style={styles.alertContainer}>

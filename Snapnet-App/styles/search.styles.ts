@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: 50,
+    paddingTop: 20,
     borderBottomWidth: 0.5,
     borderBottomColor: COLORS.surface,
   },

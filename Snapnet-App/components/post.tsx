@@ -11,8 +11,8 @@ import { Image } from 'expo-image'
 import * as MediaLibrary from 'expo-media-library'
 import { Link } from 'expo-router'
 import * as Sharing from 'expo-sharing'
-import React, { useState } from 'react'
-import { Modal, Platform, Share, Text, TouchableOpacity, View } from 'react-native'
+import React, { useRef, useState } from 'react'
+import { Animated, Modal, Platform, Share, Text, TouchableOpacity, View } from 'react-native'
 import CommentsModel from './commentsmodel'
 import { CustomAlert } from './CustomAlert'
 
@@ -45,6 +45,11 @@ export default function Post({ post }: PostProp) {
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+
+  const likeAnimationScale = useRef(new Animated.Value(0)).current;
+  const lastTap = useRef<number | null>(null);
+  const tapCount = useRef(0);
 
   const { user } = useUser();
   const currentUser = useQuery(api.users.getUserByClerkId, user ? { clerkId: user?.id } : "skip");
@@ -60,6 +65,48 @@ export default function Post({ post }: PostProp) {
     } catch (error) {
       console.error("Error toggling like:", error);
     }
+  };
+
+  const handleImagePress = () => {
+    tapCount.current += 1;
+    
+    if (tapCount.current === 1) {
+      // Wait for potential second tap
+      setTimeout(() => {
+        if (tapCount.current === 1) {
+          // Single tap - do nothing
+        }
+        tapCount.current = 0;
+      }, 300);
+    } else if (tapCount.current === 2) {
+      // Double tap detected
+      tapCount.current = 0;
+      
+      if (!isLiked) {
+        handleLike();
+        showLikeAnimationEffect();
+      }
+    }
+  };
+
+  const showLikeAnimationEffect = () => {
+    setShowLikeAnimation(true);
+    likeAnimationScale.setValue(0);
+    
+    Animated.sequence([
+      Animated.timing(likeAnimationScale, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(likeAnimationScale, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowLikeAnimation(false);
+    });
   };
 
   const handleBookmark = async () => {
@@ -199,13 +246,37 @@ export default function Post({ post }: PostProp) {
       </View>
 
       {/*Image*/}
-      <Image
-        source={post.imageUrl}
-        style={styles.postImage}
-        contentFit="cover"
-        transition={200}
-        cachePolicy="memory-disk"
-      />
+      <TouchableOpacity 
+        activeOpacity={0.95} 
+        onPress={handleImagePress}
+        style={[styles.imageContainer, styles.imageWrapper]}
+      >
+        <Image
+          source={post.imageUrl}
+          style={styles.postImage}
+          contentFit="cover"
+          transition={200}
+          cachePolicy="memory-disk"
+        />
+        
+        {/* Like Animation Overlay */}
+        {showLikeAnimation && (
+          <Animated.View 
+            style={[
+              styles.likeAnimationOverlay,
+              {
+                transform: [{ scale: likeAnimationScale }]
+              }
+            ]}
+          >
+            <Ionicons 
+              name="heart" 
+              size={80} 
+              color={COLORS.primary} 
+            />
+          </Animated.View>
+        )}
+      </TouchableOpacity>
 
       {/*Post Actions*/}
       <View style={styles.postActions}>
@@ -295,7 +366,7 @@ export default function Post({ post }: PostProp) {
       <CustomAlert
         visible={showDeleteAlert}
         title="Delete Post"
-        message="Are you sure you want to delete this post? This action cannot be undone."
+        message="Are you sure you want to delete this post?"
         buttons={[
           {
             text: "Cancel",
