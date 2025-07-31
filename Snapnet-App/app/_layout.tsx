@@ -1,17 +1,16 @@
+import InitialLayout from '@/components/InitialLayout';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
-import { Slot, Stack } from "expo-router";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import InitialLayout from '@/components/InitialLayout';
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
-import {useFonts} from "expo-font";
-import { useCallback } from 'react';
-import * as SplashScreen from 'expo-splash-screen'
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { useFonts } from "expo-font";
 import * as NavigationBar from 'expo-navigation-bar';
+import { Slot } from "expo-router";
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect } from 'react';
+import { Platform } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
@@ -22,8 +21,15 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ "JetBrainsMono-Medium": require("../assets/fonts/JetBrainsMono-Medium.ttf") });
 
+  // Move useEffect BEFORE the early return
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      NavigationBar.setBackgroundColorAsync("#000000");
+      NavigationBar.setButtonStyleAsync("light");
+    }
+  }, []);
 
-   const onLayoutRootView = useCallback(async () => {
+  const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
       await SplashScreen.hideAsync();
     }
@@ -32,14 +38,6 @@ export default function RootLayout() {
   if (!fontsLoaded) {
     return null; 
   }
-
-  // update the native navigation bar on Android.
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      NavigationBar.setBackgroundColorAsync("#000000");
-      NavigationBar.setButtonStyleAsync("light");
-    }
-  }, []);
 
 
   return (

@@ -1,17 +1,19 @@
-import { View, Text, TouchableOpacity } from 'react-native'
-import React, { use } from 'react'
-import { styles } from '@/styles/feed.styles'
-import { Link } from 'expo-router'
-import { Image } from 'expo-image'
-import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '@/constants/Theme'
+import { api } from "@/convex/_generated/api"
 import { Id } from '@/convex/_generated/dataModel'
-import { useState } from 'react'
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import CommentsModel from './commentsmodel'
-import { formatDistanceToNow } from 'date-fns/formatDistanceToNow'
+import { styles } from '@/styles/feed.styles'
 import { useUser } from '@clerk/clerk-react'
+import { Ionicons } from '@expo/vector-icons'
+import { useMutation, useQuery } from "convex/react"
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow'
+import * as FileSystem from 'expo-file-system'
+import { Image } from 'expo-image'
+import * as MediaLibrary from 'expo-media-library'
+import { Link } from 'expo-router'
+import * as Sharing from 'expo-sharing'
+import React, { useState } from 'react'
+import { Alert, Modal, Platform, Share, Text, TouchableOpacity, View } from 'react-native'
+import CommentsModel from './commentsmodel'
 
 
 type PostProp = {
@@ -37,6 +39,7 @@ export default function Post({ post }: PostProp) {
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
   const [showComments, setShowComments] = useState(false);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
 
   const { user } = useUser();
   const currentUser = useQuery(api.users.getUserByClerkId, user ? { clerkId: user?.id } : "skip");
@@ -59,13 +62,113 @@ export default function Post({ post }: PostProp) {
     setIsBookmarked(newIsBookmarked);
   };
 
-  const handleDeletePost= async ()=>{
+  const handleDeletePost = async () => {
+    Alert.alert(
+      'Delete Post',
+      'Are you sure you want to delete this post? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePost({ postId: post._id });
+            } catch (error) {
+              console.error("Error deleting post: ", error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDownloadImage = async () => {
     try {
-      await deletePost({postId:post._id});
+      // Request permission to access media library
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant permission to save images to your gallery');
+        return;
+      }
+
+      // Download the image
+      const fileUri = FileSystem.documentDirectory + `post_${post._id}.jpg`;
+      const downloadResult = await FileSystem.downloadAsync(post.imageUrl, fileUri);
+      
+      // Save to media library
+      const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
+      await MediaLibrary.createAlbumAsync('Snapnet', asset, false);
+      
+      Alert.alert('Success', 'Image saved to your gallery!');
+      setShowOptionsModal(false);
     } catch (error) {
-      console.error("Error deleting post: ", error);
+      console.error('Error downloading image:', error);
+      Alert.alert('Error', 'Failed to download image');
     }
-  }
+  };
+
+  const handleSharePost = async () => {
+    try {
+      // Download the image to a temporary location
+      const fileUri = FileSystem.documentDirectory + `temp_share_${post._id}.jpg`;
+      const downloadResult = await FileSystem.downloadAsync(post.imageUrl, fileUri);
+      
+      if (downloadResult.status === 200) {
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        
+        if (isAvailable) {
+          // Use expo-sharing for better image sharing support
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'image/jpeg',
+            dialogTitle: `Post by ${post.author.username}${post.caption ? `: ${post.caption}` : ''}`,
+          });
+        } else {
+          // Fallback to React Native Share API
+          const shareOptions = {
+            message: `Check out this post by ${post.author.username}${post.caption ? `:\n\n"${post.caption}"` : ''}`,
+            url: Platform.OS === 'ios' ? downloadResult.uri : `file://${downloadResult.uri}`,
+          };
+          await Share.share(shareOptions);
+        }
+        
+        // Clean up the temporary file after sharing
+        setTimeout(async () => {
+          try {
+            await FileSystem.deleteAsync(downloadResult.uri);
+          } catch (error) {
+            console.log('Error cleaning up temp file:', error);
+          }
+        }, 5000);
+        
+      } else {
+        // Fallback to text-only sharing if image download fails
+        const shareOptions = {
+          message: `Check out this post by ${post.author.username}${post.caption ? `: ${post.caption}` : ''}\n\nImage: ${post.imageUrl}`,
+        };
+        await Share.share(shareOptions);
+      }
+      
+      setShowOptionsModal(false);
+    } catch (error) {
+      console.error('Error sharing post:', error);
+      // Final fallback to text-only sharing
+      try {
+        const shareOptions = {
+          message: `Check out this post by ${post.author.username}${post.caption ? `: ${post.caption}` : ''}\n\nImage: ${post.imageUrl}`,
+        };
+        await Share.share(shareOptions);
+        setShowOptionsModal(false);
+      } catch (fallbackError) {
+        console.error('Error with fallback sharing:', fallbackError);
+        Alert.alert('Error', 'Failed to share post');
+      }
+    }
+  };
 
   return (
     <View style={styles.post}>
@@ -84,11 +187,11 @@ export default function Post({ post }: PostProp) {
         </Link>
 
         {String(post.author._id) === String(currentUser?._id) ? (
-          <TouchableOpacity onPress={() => handleDeletePost} accessibilityLabel="Delete post">
+          <TouchableOpacity onPress={handleDeletePost} accessibilityLabel="Delete post">
             <Ionicons name="trash-outline" size={20} color={COLORS.primary} />
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowOptionsModal(true)}>
             <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.white} />
           </TouchableOpacity>
         )}
@@ -144,6 +247,49 @@ export default function Post({ post }: PostProp) {
          
         />
       </View>
+
+      {/* Options Modal for other users' posts */}
+      <Modal
+        visible={showOptionsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowOptionsModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowOptionsModal(false)}
+        >
+          <View style={styles.optionsModal}>
+            <TouchableOpacity 
+              style={styles.optionItem}
+              onPress={handleDownloadImage}
+            >
+              <Ionicons name="download-outline" size={24} color={COLORS.white} />
+              <Text style={styles.optionText}>Download Image</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.optionDivider} />
+            
+            <TouchableOpacity 
+              style={styles.optionItem}
+              onPress={handleSharePost}
+            >
+              <Ionicons name="share-outline" size={24} color={COLORS.white} />
+              <Text style={styles.optionText}>Share Post</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.optionDivider} />
+            
+            <TouchableOpacity 
+              style={[styles.optionItem, styles.cancelOption]}
+              onPress={() => setShowOptionsModal(false)}
+            >
+              <Text style={[styles.optionText, styles.cancelText]}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   )
 }

@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/Theme";
-import { Dimensions, Platform, StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -217,5 +217,42 @@ export const styles = StyleSheet.create({
   centered: {
     justifyContent: "center",
     alignItems: "center",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  optionsModal: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    paddingVertical: 8,
+    minWidth: 200,
+  },
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  optionText: {
+    color: COLORS.white,
+    fontSize: 16,
+    marginLeft: 12,
+    fontWeight: "500",
+  },
+  optionDivider: {
+    height: 1,
+    backgroundColor: COLORS.grey + "30",
+    marginHorizontal: 20,
+  },
+  cancelOption: {
+    justifyContent: "center",
+  },
+  cancelText: {
+    color: COLORS.grey,
+    marginLeft: 0,
   },
 });

@@ -176,7 +176,7 @@ export const styles = StyleSheet.create({
   },
   postDetailContainer: {
     backgroundColor: COLORS.background,
-    maxHeight: height * 0.9,
+    maxHeight: height * 1.5,
   },
   postDetailHeader: {
     flexDirection: "row",
