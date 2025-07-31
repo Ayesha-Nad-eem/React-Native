@@ -8,6 +8,10 @@ import { ConvexReactClient } from "convex/react";
 import {useFonts} from "expo-font";
 import { useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen'
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import * as NavigationBar from 'expo-navigation-bar';
+import { StatusBar } from 'expo-status-bar';
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
@@ -29,6 +33,14 @@ export default function RootLayout() {
     return null; 
   }
 
+  // update the native navigation bar on Android.
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      NavigationBar.setBackgroundColorAsync("#000000");
+      NavigationBar.setButtonStyleAsync("light");
+    }
+  }, []);
+
 
   return (
     <ClerkProvider tokenCache={tokenCache}>
@@ -39,6 +51,7 @@ export default function RootLayout() {
           <Slot />
         </SafeAreaView>
       </SafeAreaProvider>
+      <StatusBar style="light" />
       </ConvexProviderWithClerk>
     </ClerkProvider>
 

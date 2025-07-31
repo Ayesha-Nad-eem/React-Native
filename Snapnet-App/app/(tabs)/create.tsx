@@ -5,23 +5,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   ScrollView,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import { Image } from "expo-image";
 
-import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
 
-import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useMutation } from "convex/react";
 
 export default function CreateScreen() {
   const router = useRouter();
@@ -92,12 +90,7 @@ export default function CreateScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 20}
-      
-    >
+    <View style={styles.container}>
       <View style={styles.contentContainer}>
         {/* HEADER */}
         <View style={styles.header}>
@@ -132,7 +125,7 @@ export default function CreateScreen() {
           contentContainerStyle={styles.scrollContent}
           bounces={false}
           keyboardShouldPersistTaps="handled"
-          contentOffset={{ x: 0, y: 100 }}
+          showsVerticalScrollIndicator={false}
         >
           <View style={[styles.content, isSharing && styles.contentDisabled]}>
             {/* IMAGE SECTION */}
@@ -176,6 +169,6 @@ export default function CreateScreen() {
           </View>
         </ScrollView>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
