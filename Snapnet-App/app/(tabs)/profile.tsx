@@ -7,6 +7,7 @@ import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   FlatList,
@@ -38,6 +39,17 @@ export default function Profile() {
   const posts = useQuery(api.posts.getPostsByUser, {});
 
   const updateProfile = useMutation(api.users.updateProfile);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      // Force navigation to login screen
+      router.replace("/(auth)/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      // Even if signOut fails, try to navigate to login
+      router.replace("/(auth)/login");
+    }
+  };
 
   const handleSaveProfile = async () => {
     await updateProfile(editedProfile);
@@ -70,7 +82,7 @@ export default function Profile() {
           <Text style={styles.username}>{currentUser.username}</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon} onPress={() => signOut()}>
+          <TouchableOpacity style={styles.headerIcon} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={24} color={COLORS.white} />
           </TouchableOpacity>
         </View>

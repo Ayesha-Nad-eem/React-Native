@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.header {
+  @apply flex-1 justify-between bg-[#495E57];
+}
+
+.lemon-header {
+  @apply bg-[#F4CE14] h-[100px] w-full justify-center items-center;
+}
+
+.lemon-header-text {
+  @apply p-10 text-3xl text-black;
+}
+
+.lemon-footer{
+    @apply bg-[#F4CE14] h-[60px] w-full justify-center items-center;
+}
+
+.lemon-footer-text {
+  @apply text-center text-gray-500 p-4;
+}
