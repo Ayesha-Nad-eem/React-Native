@@ -1,5 +1,7 @@
 // app/todoStore.ts
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Todo = {
   id: number;
@@ -14,23 +16,31 @@ type TodoState = {
   removeTodo: (id: number) => void;
 };
 
-export const useTodoStore = create<TodoState>((set) => ({
-  todos: [],
-  addTodo: (text) =>
-    set((state) => ({
-      todos: [
-        ...state.todos,
-        { id: Date.now(), text, done: false },
-      ],
-    })),
-  toggleTodo: (id) =>
-    set((state) => ({
-      todos: state.todos.map((t) =>
-        t.id === id ? { ...t, done: !t.done } : t
-      ),
-    })),
-  removeTodo: (id) =>
-    set((state) => ({
-      todos: state.todos.filter((t) => t.id !== id),
-    })),
-}));
+export const useTodoStore = create<TodoState>()(
+  persist(
+    (set) => ({
+      todos: [],
+      addTodo: (text) =>
+        set((state) => ({
+          todos: [
+            ...state.todos,
+            { id: Date.now(), text, done: false },
+          ],
+        })),
+      toggleTodo: (id) =>
+        set((state) => ({
+          todos: state.todos.map((t) =>
+            t.id === id ? { ...t, done: !t.done } : t
+          ),
+        })),
+      removeTodo: (id) =>
+        set((state) => ({
+          todos: state.todos.filter((t) => t.id !== id),
+        })),
+    }),
+    {
+      name: "todo-storage", // storage key
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);
