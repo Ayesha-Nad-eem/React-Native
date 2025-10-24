@@ -1,11 +1,13 @@
 {
   "expo": {
     "name": "Trader",
-    "slug": "Trader",
+    "slug": "ReactNatuve",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "Trader",
+    "icon": "./assets/images/icon.jpg",
+    "scheme": [
+      "trader"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,7 +15,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.jpg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -34,7 +36,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -44,6 +47,7 @@
       "eas": {
         "projectId": "61b28445-2ed3-43f3-ac68-1dac002aee1e"
       }
-    }
+    },
+    "owner": "ayeshanadeem1"
   }
 }
