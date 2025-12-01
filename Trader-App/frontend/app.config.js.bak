@@ -1,0 +1,16 @@
+// Backup of app.config.js created while debugging multipart response error
+try {
+  require('dotenv').config();
+} catch (e) {}
+const appJson = require('./app.json');
+module.exports = () => {
+  const expo = { ...(appJson.expo || {}) };
+  expo.android = expo.android || {};
+  expo.android.config = expo.android.config || {};
+  expo.android.config.googleMaps = expo.android.config.googleMaps || {};
+  expo.android.config.googleMaps.apiKey = process.env.GOOGLE_MAPS_API_KEY || expo.android.config.googleMaps.apiKey || '';
+  expo.extra = expo.extra || {};
+  expo.extra.FINNHUB_KEY = process.env.FINNHUB_KEY || expo.extra.FINNHUB_KEY || '';
+  expo.extra.GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || expo.extra.GOOGLE_MAPS_API_KEY || '';
+  return { expo };
+};

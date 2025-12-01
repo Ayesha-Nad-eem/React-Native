@@ -1,5 +1,7 @@
-import HomeScreen from "./HomeScreen";
+import { Redirect } from 'expo-router';
 
 export default function Index() {
-  return <HomeScreen />;
+  // Use a declarative Redirect so the router will navigate when it's ready.
+  // This avoids imperative navigation before the root layout mounts.
+  return <Redirect href="/(tabs)/home" />;
 }

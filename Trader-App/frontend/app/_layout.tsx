@@ -1,16 +1,11 @@
-import "./global.css"
-import { Stack } from "expo-router";
-
+import { Slot } from "expo-router";
+import CarsProvider from "./contexts/CarsContext";
+import "./global.css";
 
 export default function RootLayout() {
   return (
-      <Stack>
-        <Stack.Screen
-          name="index"
-          options={{
-            headerShown: false
-          }}
-        />
-      </Stack>
+    <CarsProvider>
+      <Slot />
+    </CarsProvider>
   );
 }

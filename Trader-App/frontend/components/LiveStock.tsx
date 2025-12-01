@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import Constants from 'expo-constants';
 
 interface StockData {
   symbol: string;
@@ -10,7 +11,10 @@ const SYMBOLS = [
   "AAPL", "TSLA", "GOOGL", "AMZN", "MSFT",
   "NVDA", "META", "NFLX", "INTC", "AMD"
 ];
-const API_KEY = "d3tmvbhr01qigeg3uih0d3tmvbhr01qigeg3uihg";
+const API_KEY =
+  (Constants?.expoConfig?.extra as any)?.FINNHUB_KEY ||
+  (Constants?.manifest?.extra as any)?.FINNHUB_KEY ||
+  '';
 
 type SparkBarsProps = {
   data: number[];
