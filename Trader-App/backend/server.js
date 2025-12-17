@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const morgan = require("morgan");
+
 const express = require("express");
 const cors = require("cors");
 
@@ -7,6 +9,7 @@ const app = express();
 
 // Middleware
 app.use(cors());
+app.use(morgan("dev"));
 
 // For Stripe webhook, we need raw body, so we handle it before json middleware
 app.use("/api/payment/webhook", express.raw({ type: "application/json" }));
