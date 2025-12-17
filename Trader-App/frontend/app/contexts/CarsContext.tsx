@@ -1,6 +1,25 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+
+import axios from "axios";
+
+interface FareProps {
+  distanceKm: number;
+  durationMin: number;
+  hours?: number;
+  pickup: { lat: any; lng: any };
+  dropoff: { lat: any; lng: any };
+  encodedPolyline?: string;
+}
+
+interface FareResponse {
+  perKm: number;
+  hourFare: number;
+  distanceFare: number;
+  tollFare: number;
+  fare: number;
+
+}
 
 export type Car = {
   id: string;
@@ -89,199 +108,150 @@ export default function CarsProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  async function calculateFares({ distanceKm, durationMin, hours, pickup, dropoff, encodedPolyline }: { distanceKm: number; durationMin: number; hours: number; pickup?: { latitude: number; longitude: number }; dropoff?: { latitude: number; longitude: number }; encodedPolyline?: string }) {
 
-    async function fetchTollCost(pick?: { latitude: number; longitude: number }, drop?: { latitude: number; longitude: number }, encoded?: string): Promise<{ amount: number; raw?: any }> {
-      // Safely format values for logging so nulls are visible and objects are stringified
-      function formatForLog(v: any) {
-        try {
-          if (v === null) return '<null>';
-          if (typeof v === 'string') return v;
-          return JSON.stringify(v, (_k, val) => (val === null ? '<null>' : val), 2);
-        } catch (e) {
-          try { return String(v); } catch (e2) { return '<unserializable>'; }
-        }
-      }
+  const calculateFares = async ({
+    distanceKm,
+    durationMin,
+    hours = 0,
+    pickup,
+    dropoff,
+    encodedPolyline
+  }: { distanceKm: number; durationMin: number; hours?: number; pickup?: { latitude: number; longitude: number }; dropoff?: { latitude: number; longitude: number }; encodedPolyline?: string }): Promise<Array<{
+    car: Car;
+    fare: number;
+    breakdown: { hourFare: number; distanceFare: number; tollFare: number };
+  }>> => {
 
+    // ---- Fare Rates (defaults) ----
+    const baseFee = 100;
+    const defaultPerKmRate = 40;
+    const perMinuteRate = 2;
+    const vehicleType = "2AxlesAuto";
+    const apiKey = "tg_5D3D8A07AC9F4E08992A106E69640071";
+
+    // ---- TollGuru Toll Calculation (single call for route) ----
+    let tollFare = 0;
+    if (pickup && dropoff && !tollGuruDisabledForSessionRef.current) {
       try {
-        const extras = (Constants?.expoConfig?.extra as any) || (Constants?.manifest?.extra as any) || {};
-        const key = extras.TOLLGURU_KEY || '';
-        const enabled = typeof extras.TOLLGURU_ENABLED === 'boolean' ? extras.TOLLGURU_ENABLED : true;
-        if (!enabled) return { amount: 0, raw: 'tollguru disabled by config' };
-        if (!key) return { amount: 0, raw: 'missing TOLLGURU_KEY' };
-        if (tollGuruDisabledForSessionRef.current) return { amount: 0, raw: 'TollGuru disabled for this session due to previous quota errors' };
-        if (!pick || !drop) return { amount: 0, raw: 'missing coordinates' };
-
-          // Use the TollGuru public API endpoint (v2 origin-destination route)
-          // The project previously used a hardcoded v1 endpoint and fixed coords.
-          const endpoint = 'https://api.tollguru.com/toll/v2/origin-destination-waypoints';
-          const payload: any = {
-            from: pick ? { lat: pick.latitude, lng: pick.longitude } : { lat: 40.0, lng: -74.0 },
-            to: drop ? { lat: drop.latitude, lng: drop.longitude } : { lat: 41.0, lng: -73.5 },
-            vehicle: {
-              type: '2AxlesAuto'
+        const tollResponse = await axios.post(
+          "https://apis.tollguru.com/toll/v2/origin-destination-waypoints",
+          {
+            from: { lat: pickup.latitude, lng: pickup.longitude },
+            to: { lat: dropoff.latitude, lng: dropoff.longitude },
+            vehicle: { type: vehicleType },
+            polyline: encodedPolyline || undefined
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Api-Key": apiKey
             }
-          };
-        if (encoded) payload.encoded_polyline = encoded;
-
-        const maskedKey = key ? `${String(key).slice(0, 4)}...${String(key).slice(-4)}` : '<missing>';
-        console.info('[TollGuru] Request', { time: new Date().toISOString(), endpoint, maskedKey, payload });
-  // Quick dev-only check: log runtime key length (do NOT enable in production builds)
-  console.log('[TollGuru] Using API key:', maskedKey);
-        console.log("key ",key);
-        console.log(payload);
-  try { console.debug('[TollGuru] runtime key length (dev only)', key ? String(key).length : 0); } catch (e) {}
-
-        const t0 = Date.now();
-
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'x-api-key': key },
-          body: JSON.stringify(payload)
-        });
-
-        const t1 = Date.now();
-        const durationMs = t1 - t0;
-        const text = await res.text().catch(() => '<<unreadable response>>');
-        let respHeaders: any = undefined;
+          }
+        );
+        // Log status and full payload for debugging
+        console.log('TollGuru response status:', tollResponse.status);
         try {
-          // Try to serialize headers if available
-          if (res && (res as any).headers) {
-            const h = (res as any).headers;
-            if (typeof h.forEach === 'function') {
-              respHeaders = {};
-              h.forEach((v: any, k: any) => { respHeaders[k] = v; });
-            } else if (typeof h.entries === 'function') {
-              respHeaders = Object.fromEntries(h.entries());
-            } else {
-              respHeaders = h;
-            }
-          }
-        } catch (e) { respHeaders = '<unreadable headers>'; }
+          console.log('TollGuru response data:', JSON.stringify(tollResponse.data, null, 2));
+        } catch (e) {
+          console.log('TollGuru response data (raw):', tollResponse.data);
+        }
 
-        console.info('[TollGuru] Response', { time: new Date().toISOString(), durationMs, status: res.status, statusText: (res as any).statusText, headers: respHeaders, body: text });
-        let j: any = null;
-        try { j = JSON.parse(text); } catch (e) { j = null; }
-        const rawStr = `HTTP ${res.status} - ${formatForLog(j ?? text)}`;
+        // Normalize extraction — TollGuru returns an array `routes[]`; choose the route that reports tolls
+        const data = tollResponse.data || {};
 
-        // Handle common non-OK cases with helpful fallbacks and messages
-        if (!res.ok) {
-          // Quota exhausted: turn off further TollGuru calls for this session and return a clear message
-          if (res.status === 403) {
-            tollGuruDisabledForSessionRef.current = true;
-            const now = Date.now();
-            const warnKey = `403|quota|${respHeaders && (respHeaders['x-amzn-requestid'] || respHeaders['x-amzn-requestid'.toLowerCase()]) || '<no-id>'}`;
-            if (warnKey !== lastTollGuruWarnKeyRef.current || now - lastTollGuruWarnAtRef.current > 60_000) {
-              console.warn('TollGuru quota exceeded', rawStr, { respHeaders });
-              lastTollGuruWarnKeyRef.current = warnKey;
-              lastTollGuruWarnAtRef.current = now;
-            }
-            return { amount: 0, raw: { message: 'Toll estimates temporarily unavailable — API quota exceeded. Add billing or wait for reset.', status: 403, details: j || text } };
+        // Find the most relevant route: prefer one with explicit `tolls` entries, or with costs.tag/expressLanes, or summary.hasTolls
+        const routesArray: any[] = Array.isArray(data?.routes) ? data.routes : [];
+        let selectedRoute: any = null;
+        if (routesArray.length > 0) {
+          selectedRoute = routesArray.find((r) => Array.isArray(r.tolls) && r.tolls.length > 0)
+            || routesArray.find((r) => r.costs && ((r.costs.tag && r.costs.tag > 0) || r.costs.expressLanes))
+            || routesArray.find((r) => r.summary && r.summary.hasTolls)
+            || routesArray[0];
+        } else {
+          selectedRoute = data?.route ?? null;
+        }
+
+        let computed = 0;
+        if (selectedRoute) {
+          try {
+            console.log('TollGuru selected route summary:', selectedRoute?.summary?.name ?? selectedRoute?.summary ?? '(no summary)');
+          } catch (e) {
+            // ignore
           }
 
-          // Routing backend error: try a safe fallback (retry without encoded_polyline) once
-          if (res.status === 500 && j && (j.code === 'ROUTING_ERROR' || j.status === 500)) {
-            try {
-              const fallbackPayload = { from: payload.from, to: payload.to, vehicle: payload.vehicle };
-              console.info('[TollGuru] Routing error detected — retrying without encoded_polyline', { fallbackPayload });
-              const fallRes = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'x-api-key': key },
-                body: JSON.stringify(fallbackPayload)
-              });
-              const fallText = await fallRes.text().catch(() => '<<unreadable response>>');
-              let fallJson: any = null;
-              try { fallJson = JSON.parse(fallText); } catch (e) { fallJson = null; }
-              let fallHeaders: any = undefined;
-              try {
-                const h = (fallRes as any).headers;
-                if (typeof h.forEach === 'function') { fallHeaders = {}; h.forEach((v: any, k: any) => { fallHeaders[k] = v; }); }
-                else if (typeof h.entries === 'function') fallHeaders = Object.fromEntries(h.entries());
-                else fallHeaders = h;
-              } catch (e) { fallHeaders = '<unreadable headers>'; }
-              console.info('[TollGuru] Fallback response', { status: fallRes.status, headers: fallHeaders, body: fallText });
-
-              // Try to extract tolls from fallback JSON using same heuristics
-              if (fallRes.ok) {
-                const fj = fallJson;
-                if (fj != null) {
-                  if (typeof fj.total_cost === 'number' && fj.total_cost > 0) return { amount: fj.total_cost, raw: fj };
-                  if (typeof fj.total_toll === 'number' && fj.total_toll > 0) return { amount: fj.total_toll, raw: fj };
-                  if (fj && fj.route && typeof fj.route.toll_cost === 'number' && fj.route.toll_cost > 0) return { amount: fj.route.toll_cost, raw: fj };
-                  if (Array.isArray(fj.tolls) && fj.tolls.length > 0) {
-                    const sum = fj.tolls.reduce((s: number, t: any) => s + (Number(t.amount || t.price || 0) || 0), 0);
-                    if (sum > 0) return { amount: sum, raw: fj };
-                  }
-                }
-              }
-              // If fallback gave nothing useful, fall through to original error handling
-            } catch (e) {
-              console.warn('TollGuru fallback attempt failed', e);
+          // Sum per-segment tolls on the selected route
+          if (Array.isArray(selectedRoute.tolls) && selectedRoute.tolls.length > 0) {
+            for (const t of selectedRoute.tolls) {
+              const seg = Number(t.tagCost ?? t.tagPriCost ?? t.tag ?? t.tag_cost ?? t.tagCost ?? 0);
+              if (!isNaN(seg) && seg > 0) computed += seg;
             }
           }
 
-          // Check for AWS gateway error headers to capture useful trace ids
-          const errType = (respHeaders && (respHeaders['x-amzn-errortype'] || respHeaders['x-amzn-errortype'.toLowerCase()])) || undefined;
-          const reqId = (respHeaders && (respHeaders['x-amzn-requestid'] || respHeaders['x-amzn-requestid'.toLowerCase()])) || (respHeaders && (respHeaders['x-amz-request-id'] || respHeaders['x-amz-request-id'.toLowerCase()]));
-          const warnKey = `${res.status}|${errType || '<no-err>'}|${reqId || '<no-id>'}`;
-          const now = Date.now();
-          if (warnKey !== lastTollGuruWarnKeyRef.current || now - lastTollGuruWarnAtRef.current > 60_000) {
-            console.warn('TollGuru request failed', res.status, rawStr, { errType, reqId });
-            lastTollGuruWarnKeyRef.current = warnKey;
-            lastTollGuruWarnAtRef.current = now;
-          } else {
-            // minor log at info level to keep a trace without spamming WARN
-            console.info('TollGuru repeated failure suppressed', { status: res.status, reqId });
+          // Include express lanes if present on the selected route's costs
+          const costs = selectedRoute.costs ?? null;
+          if (costs && costs.expressLanes) {
+            const el = costs.expressLanes;
+            const elCost = Number(el.tagCost ?? el.tag_price ?? el.tagPriCost ?? el.tagPriCost ?? 0);
+            if (!isNaN(elCost) && elCost > 0) computed += elCost;
           }
-          return { amount: 0, raw: rawStr };
-        }
 
-        if (j == null) {
-          const now = Date.now();
-          const warnKey = `unreadable|${res.status}|${respHeaders && (respHeaders['x-amzn-requestid'] || respHeaders['x-amzn-requestid'.toLowerCase()]) || '<no-id>'}`;
-          if (warnKey !== lastTollGuruWarnKeyRef.current || now - lastTollGuruWarnAtRef.current > 60_000) {
-            console.warn('TollGuru response unreadable JSON', rawStr);
-            lastTollGuruWarnKeyRef.current = warnKey;
-            lastTollGuruWarnAtRef.current = now;
-          } else {
-            console.info('TollGuru unreadable JSON suppressed');
+          // Fall back to costs.tag/cash
+          if (computed === 0 && costs) {
+            const tag = Number(costs.tag ?? costs.tag_cost ?? costs.tag_total ?? costs.tag ?? 0);
+            const cash = Number(costs.cash ?? costs.cash_cost ?? costs.cash_total ?? 0);
+            if (!isNaN(tag) && tag > 0) computed = tag;
+            else if (!isNaN(cash) && cash > 0) computed = cash;
           }
-          return { amount: 0, raw: rawStr };
+
+          // Last resort: summary cost
+          if (computed === 0) {
+            const maybeSummary = selectedRoute?.summary ?? null;
+            const maybeCost = maybeSummary?.cost ?? maybeSummary?.costs ?? null;
+            if (typeof maybeCost === 'number') computed = maybeCost;
+            else if (maybeCost && (maybeCost.tag || maybeCost.cash)) computed = Number(maybeCost.tag ?? maybeCost.cash) || 0;
+          }
         }
 
-        if (typeof j.total_cost === 'number' && j.total_cost > 0) return { amount: j.total_cost, raw: j };
-        if (typeof j.total_toll === 'number' && j.total_toll > 0) return { amount: j.total_toll, raw: j };
-        if (j && j.route && typeof j.route.toll_cost === 'number' && j.route.toll_cost > 0) return { amount: j.route.toll_cost, raw: j };
-        if (Array.isArray(j.tolls) && j.tolls.length > 0) {
-          const sum = j.tolls.reduce((s: number, t: any) => s + (Number(t.amount || t.price || 0) || 0), 0);
-          if (sum > 0) return { amount: sum, raw: j };
-        }
-        for (const k of Object.keys(j)) {
-          const v = j[k];
-          if ((/toll|cost|amount|price/i).test(k) && typeof v === 'number' && v > 0) return { amount: v, raw: j };
-        }
+        tollFare = computed;
+        console.log('TollGuru selected route tollFare:', tollFare);
 
-        console.warn('TollGuru response did not include toll. Response:', rawStr, 'Payload:', payload);
-        return { amount: 0, raw: rawStr };
-      } catch (e) {
-        console.warn('Toll estimate failed', e);
-        return { amount: 0, raw: e };
+
+      } catch (error: any) {
+        console.log('TollGuru request failed. status:', error?.response?.status, 'data:', error?.response?.data || error?.message);
+
+        // Avoid spamming the console for the same TollGuru error repeatedly
+        const key = error?.response?.status + ':' + (error?.response?.data?.message || '');
+        const now = Date.now();
+        if (lastTollGuruWarnKeyRef.current !== key || now - lastTollGuruWarnAtRef.current > 60_000) {
+          console.log("TollGuru Error → No tolls applied:", error?.response?.data || error?.message);
+          lastTollGuruWarnKeyRef.current = key;
+          lastTollGuruWarnAtRef.current = now;
+        }
+        if (error?.response?.status === 403) {
+          tollGuruDisabledForSessionRef.current = true;
+        }
+        tollFare = 0;
       }
     }
 
-    const tollResult = await fetchTollCost(pickup, dropoff, encodedPolyline);
-    const tollAmount = Number((tollResult && (tollResult.amount || 0)) || 0);
-    const tollRaw = tollResult && tollResult.raw ? tollResult.raw : undefined;
-
+    // ---- Compute fare per car ----
     return cars.map((car) => {
-      const perKm = typeof car.perKmRate === 'number' ? car.perKmRate : 1.0;
-      const hourFare = car.perHourRate * Math.max(0, hours);
-      const distanceFare = perKm * Math.max(0, distanceKm);
-      const tollFare = Number(tollAmount || 0);
-      const fare = Number((hourFare + distanceFare + tollFare).toFixed(2));
-      return { car, fare, breakdown: { hourFare: Number(hourFare.toFixed(2)), distanceFare: Number(distanceFare.toFixed(2)), tollFare: Number(tollFare.toFixed(2)), rawTollResponse: tollRaw } };
+      const perKmRate = car.perKmRate ?? defaultPerKmRate;
+      const hourFare = (hours || 0) * (car.perHourRate ?? 0);
+      const distanceFare = distanceKm * perKmRate;
+      const timeFare = durationMin * perMinuteRate;
+      const rawFare = baseFee + distanceFare + timeFare + hourFare + tollFare;
+
+      const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
+      const fare = round2(rawFare);
+
+      return {
+        car,
+        fare,
+        breakdown: { hourFare: round2(hourFare), distanceFare: round2(distanceFare), tollFare: round2(tollFare) }
+      };
     });
-  }
+  };
 
   return (
     <CarsContext.Provider value={{ cars, addCar, updateCar, deleteCar, refresh, calculateFares }}>

@@ -25,7 +25,7 @@ export default function UserTab() {
   const [showFaresModal, setShowFaresModal] = useState(false);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
 
   async function parseInputToCoords(input: string): Promise<LatLng | null> {
     const t = input.trim();
@@ -273,18 +273,62 @@ export default function UserTab() {
           <View className="mt-3">
             <Text className="font-semibold mb-1">Your name</Text>
             <TextInput value={customerName} onChangeText={setCustomerName} placeholder="Full name" className="border border-gray-200 rounded-md px-3 py-2 mb-2" />
-            <Text className="font-semibold mb-1">Phone</Text>
-            <TextInput value={customerPhone} onChangeText={setCustomerPhone} placeholder="Phone number" keyboardType="phone-pad" className="border border-gray-200 rounded-md px-3 py-2 mb-3" />
+            <Text className="font-semibold mb-1">Email</Text>
+            <TextInput
+              value={customerEmail}
+              onChangeText={setCustomerEmail}
+              placeholder="Email address"
+              keyboardType="email-address"
+              className="border border-gray-200 rounded-md px-3 py-2 mb-3"
+            />
 
-            <Pressable onPress={() => {
-              if (!selectedCarId) { Alert.alert('Select a car', 'Please choose a vehicle to book.'); return; }
-              if (!customerName.trim() || !customerPhone.trim()) { Alert.alert('Missing details', 'Please enter your name and phone.'); return; }
-              const chosen = fares.find(f => f.carId === selectedCarId);
-              Alert.alert('Booking', `Booked ${chosen?.car.modelName} • Fare $${chosen?.fare}\nWe will contact you at ${customerPhone}`);
-              setShowFaresModal(false);
-            }} className="py-3 rounded-xl bg-green-600">
+            <Pressable
+              onPress={async () => {
+                if (!selectedCarId) {
+                  Alert.alert('Select a car', 'Please choose a vehicle to book.');
+                  return;
+                }
+                if (!customerName.trim() || !customerEmail.trim()) {
+                  Alert.alert('Missing details', 'Please enter your name and email.');
+                  return;
+                }
+
+                const chosen = fares.find(f => f.carId === selectedCarId);
+
+                // call backend to send booking confirmation email
+                try {
+                  const res = await fetch("http://192.168.0.110:5000/book/send-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      name: customerName,
+                      email: customerEmail,
+                      car: chosen?.car.modelName,
+                      fare: chosen?.fare,
+                      pickup: fromText,
+                      dropoff: toText
+                    })
+                  });
+
+                  const json = await res.json();
+
+                  if (json.success) {
+                    Alert.alert("Booking Confirmed!", "A confirmation email has been sent to " + customerEmail);
+                  } else {
+                    Alert.alert("Error", "Failed to send email");
+                  }
+
+                  setShowFaresModal(false);
+                } catch (err) {
+                  console.error(err);
+                  Alert.alert("Error", "Could not send email");
+                }
+              }}
+              className="py-3 rounded-xl bg-green-600"
+            >
               <Text className="text-white text-center font-semibold">Confirm Booking</Text>
             </Pressable>
+
           </View>
         </View>
       </Modal>
