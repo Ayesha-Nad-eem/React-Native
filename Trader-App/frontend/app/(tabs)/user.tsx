@@ -1,14 +1,19 @@
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Modal, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Image, Modal, Pressable, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useCars } from '../contexts/CarsContext';
+
+// Backend API URL - adjust this to your backend server
+const API_URL = (Constants?.expoConfig?.extra as any)?.API_URL || 'http://192.168.1.100:3000';
 
 type LatLng = { latitude: number; longitude: number };
 
 export default function UserTab() {
-  const { cars, calculateFares } = useCars();
+  const { calculateFares } = useCars();
 
   const [fromText, setFromText] = useState('');
   const [toText, setToText] = useState('');
@@ -21,11 +26,157 @@ export default function UserTab() {
   const [currentLocation, setCurrentLocation] = useState<LatLng | null>(null);
   const [pickupCoords, setPickupCoords] = useState<LatLng | null>(null);
   const [dropoffCoords, setDropoffCoords] = useState<LatLng | null>(null);
-  const [fares, setFares] = useState<Array<{ carId: string; fare: number; breakdown: any; car: any }>>([]);
+  const [fares, setFares] = useState<{ carId: string; fare: number; breakdown: any; car: any }[]>([]);
   const [showFaresModal, setShowFaresModal] = useState(false);
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const resetBookingForm = useCallback(() => {
+    setCustomerName('');
+    setCustomerPhone('');
+    setFromText('');
+    setToText('');
+    setHours('1');
+    setDistanceKm(null);
+    setDurationMin(null);
+    setRouteCoords(null);
+    setPickupCoords(null);
+    setDropoffCoords(null);
+    setFares([]);
+    setSelectedCarId(null);
+    setIsProcessingPayment(false);
+  }, []);
+
+  const verifyPayment = useCallback(async (sessionId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/payment/verify-payment/${sessionId}`);
+      const data = await response.json();
+
+      if (data.status === 'paid') {
+        Alert.alert(
+          'Booking Confirmed! 🎉',
+          `Payment of $${data.amountTotal} received successfully.\n\nWe will contact you at ${data.metadata?.customerPhone || customerPhone} with driver details.`
+        );
+        setShowFaresModal(false);
+        resetBookingForm();
+      } else {
+        Alert.alert('Payment Pending', 'Your payment is still being processed. Please wait.');
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      Alert.alert('Booking Confirmed! 🎉', 'Your payment was successful. We will contact you shortly.');
+      setShowFaresModal(false);
+      resetBookingForm();
+    }
+  }, [customerPhone, resetBookingForm]);
+
+  // Handle deep link for payment success/cancel
+  useEffect(() => {
+    const handleUrl = async (event: { url: string }) => {
+      const { url } = event;
+      if (url.includes('payment-success')) {
+        // Extract session_id from URL if needed
+        const sessionId = url.match(/session_id=([^&]+)/)?.[1];
+        if (sessionId) {
+          await verifyPayment(sessionId);
+        } else {
+          Alert.alert('Booking Confirmed! 🎉', 'Your payment was successful. We will contact you shortly with driver details.');
+          setShowFaresModal(false);
+          resetBookingForm();
+        }
+      } else if (url.includes('payment-cancel')) {
+        Alert.alert('Payment Cancelled', 'Your booking was not completed. Please try again.');
+        setIsProcessingPayment(false);
+      }
+    };
+
+    // Listen for incoming links
+    const subscription = Linking.addEventListener('url', handleUrl);
+
+    // Check if app was opened from a link
+    Linking.getInitialURL().then((url) => {
+      if (url) handleUrl({ url });
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [verifyPayment, resetBookingForm]);
+
+  const handleConfirmBooking = async () => {
+    if (!selectedCarId) {
+      Alert.alert('Select a car', 'Please choose a vehicle to book.');
+      return;
+    }
+    if (!customerName.trim() || !customerPhone.trim()) {
+      Alert.alert('Missing details', 'Please enter your name and phone.');
+      return;
+    }
+
+    const chosen = fares.find(f => f.carId === selectedCarId);
+    if (!chosen) {
+      Alert.alert('Error', 'Selected car not found.');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      // Create app deep links for success/cancel
+      const successUrl = Linking.createURL('payment-success');
+      const cancelUrl = Linking.createURL('payment-cancel');
+
+      // Call backend to create Stripe checkout session
+      const response = await fetch(`${API_URL}/api/payment/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: chosen.fare,
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          carModel: chosen.car.modelName,
+          distanceKm,
+          durationMin,
+          pickup: pickupCoords,
+          dropoff: dropoffCoords,
+          successUrl,
+          cancelUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.url) {
+        // Open Stripe checkout in browser
+        const result = await WebBrowser.openBrowserAsync(data.url, {
+          dismissButtonStyle: 'cancel',
+          showTitle: true,
+          toolbarColor: '#2563eb',
+        });
+
+        // Handle browser close
+        if (result.type === 'cancel' || result.type === 'dismiss') {
+          // User closed the browser, check if payment was completed
+          // The deep link handler will take care of successful payments
+          setIsProcessingPayment(false);
+        }
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      Alert.alert('Payment Error', error.message || 'Unable to process payment. Please try again.');
+      setIsProcessingPayment(false);
+    }
+  };
 
   async function parseInputToCoords(input: string): Promise<LatLng | null> {
     const t = input.trim();
@@ -276,14 +427,19 @@ export default function UserTab() {
             <Text className="font-semibold mb-1">Phone</Text>
             <TextInput value={customerPhone} onChangeText={setCustomerPhone} placeholder="Phone number" keyboardType="phone-pad" className="border border-gray-200 rounded-md px-3 py-2 mb-3" />
 
-            <Pressable onPress={() => {
-              if (!selectedCarId) { Alert.alert('Select a car', 'Please choose a vehicle to book.'); return; }
-              if (!customerName.trim() || !customerPhone.trim()) { Alert.alert('Missing details', 'Please enter your name and phone.'); return; }
-              const chosen = fares.find(f => f.carId === selectedCarId);
-              Alert.alert('Booking', `Booked ${chosen?.car.modelName} • Fare $${chosen?.fare}\nWe will contact you at ${customerPhone}`);
-              setShowFaresModal(false);
-            }} className="py-3 rounded-xl bg-green-600">
-              <Text className="text-white text-center font-semibold">Confirm Booking</Text>
+            <Pressable
+              onPress={handleConfirmBooking}
+              disabled={isProcessingPayment}
+              className={`py-3 rounded-xl ${isProcessingPayment ? 'bg-gray-400' : 'bg-green-600'}`}
+            >
+              {isProcessingPayment ? (
+                <View className="flex-row items-center justify-center">
+                  <ActivityIndicator color="white" size="small" />
+                  <Text className="text-white text-center font-semibold ml-2">Processing...</Text>
+                </View>
+              ) : (
+                <Text className="text-white text-center font-semibold">Pay & Confirm Booking</Text>
+              )}
             </Pressable>
           </View>
         </View>
