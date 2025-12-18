@@ -8,7 +8,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useCars } from '../contexts/CarsContext';
 
 // Backend API URL - adjust this to your backend server
-const API_URL = (Constants?.expoConfig?.extra as any)?.API_URL || 'http://192.168.1.100:3000';
+const API_URL = (Constants?.expoConfig?.extra as any)?.API_URL || 'http://192.168.0.101:3000';
 
 type LatLng = { latitude: number; longitude: number };
 
@@ -48,7 +48,7 @@ export default function UserTab() {
     setSelectedCarId(null);
     setIsProcessingPayment(false);
   }, []);
-
+//console.log(API_URL);
   const verifyPayment = useCallback(async (sessionId: string) => {
     try {
       const response = await fetch(`${API_URL}/api/payment/verify-payment/${sessionId}`);
@@ -72,38 +72,8 @@ export default function UserTab() {
     }
   }, [customerPhone, resetBookingForm]);
 
-  // Handle deep link for payment success/cancel
-  useEffect(() => {
-    const handleUrl = async (event: { url: string }) => {
-      const { url } = event;
-      if (url.includes('payment-success')) {
-        // Extract session_id from URL if needed
-        const sessionId = url.match(/session_id=([^&]+)/)?.[1];
-        if (sessionId) {
-          await verifyPayment(sessionId);
-        } else {
-          Alert.alert('Booking Confirmed! 🎉', 'Your payment was successful. We will contact you shortly with driver details.');
-          setShowFaresModal(false);
-          resetBookingForm();
-        }
-      } else if (url.includes('payment-cancel')) {
-        Alert.alert('Payment Cancelled', 'Your booking was not completed. Please try again.');
-        setIsProcessingPayment(false);
-      }
-    };
-
-    // Listen for incoming links
-    const subscription = Linking.addEventListener('url', handleUrl);
-
-    // Check if app was opened from a link
-    Linking.getInitialURL().then((url) => {
-      if (url) handleUrl({ url });
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [verifyPayment, resetBookingForm]);
+  // Deep links are handled by dedicated screens (payment-success/payment-cancel)
+  // to avoid unmatched route errors and centralize UX.
 
   const handleConfirmBooking = async () => {
     if (!selectedCarId) {
@@ -125,7 +95,8 @@ export default function UserTab() {
 
     try {
       // Create app deep links for success/cancel
-      const successUrl = Linking.createURL('payment-success');
+      // Include Stripe session id placeholder so we can verify on return
+      const successUrl = Linking.createURL('payment-success?session_id={CHECKOUT_SESSION_ID}');
       const cancelUrl = Linking.createURL('payment-cancel');
 
       // Call backend to create Stripe checkout session
