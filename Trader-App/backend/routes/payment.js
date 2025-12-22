@@ -2,11 +2,10 @@ const express = require("express");
 const router = express.Router();
 const Stripe = require("stripe");
 
-// Initialize Stripe with secret key from environment
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create a checkout session for booking payment
-router.post("/create-checkout-session", async (req, res) => {
+// Create Payment Intent for in-app payment
+router.post("/create-payment-intent", async (req, res) => {
   try {
     const {
       amount,
@@ -17,35 +16,18 @@ router.post("/create-checkout-session", async (req, res) => {
       durationMin,
       pickup,
       dropoff,
-      successUrl,
-      cancelUrl,
     } = req.body;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: "Invalid amount" });
     }
 
-    // Create a Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Chauffeur Booking - ${carModel}`,
-              description: `${distanceKm} km trip • ${durationMin} min estimated duration`,
-            },
-            unit_amount: Math.round(amount * 100), // Stripe expects amount in cents
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url:
-        successUrl ||
-        `${process.env.APP_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${process.env.APP_URL}/payment-cancel`,
+    console.log("Creating payment intent for amount:", amount);
+
+    // Create Payment Intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: "usd",
       metadata: {
         customerName,
         customerPhone,
@@ -55,38 +37,46 @@ router.post("/create-checkout-session", async (req, res) => {
         pickup: JSON.stringify(pickup),
         dropoff: JSON.stringify(dropoff),
       },
+      description: `Chauffeur Booking - ${carModel}`,
+    });
+
+    console.log("Payment intent created:", {
+      id: paymentIntent.id,
+      amount: paymentIntent.amount,
+      status: paymentIntent.status,
     });
 
     res.json({
-      sessionId: session.id,
-      url: session.url,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
     });
   } catch (error) {
-    console.error("Stripe checkout error:", error);
+    console.error("Payment intent creation error:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Verify payment status
-router.get("/verify-payment/:sessionId", async (req, res) => {
+// Verify payment status (optional - for confirmation)
+router.get("/verify-payment-intent/:paymentIntentId", async (req, res) => {
   try {
-    const { sessionId } = req.params;
+    const { paymentIntentId } = req.params;
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log("Verifying payment intent:", paymentIntentId);
+
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     res.json({
-      status: session.payment_status,
-      customerEmail: session.customer_details?.email,
-      amountTotal: session.amount_total / 100, // Convert back from cents
-      metadata: session.metadata,
+      status: paymentIntent.status,
+      amount: paymentIntent.amount / 100,
+      metadata: paymentIntent.metadata,
     });
   } catch (error) {
-    console.error("Payment verification error:", error);
+    console.error("Payment intent verification error:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Webhook endpoint for Stripe events (optional but recommended for production)
+// Stripe webhook endpoint for payment events
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),
@@ -103,13 +93,12 @@ router.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Handle the event
     switch (event.type) {
-      case "checkout.session.completed":
-        const session = event.data.object;
-        console.log("Payment successful for session:", session.id);
-        // Here you would save the booking to your database
-        // await saveBooking(session.metadata);
+      case "payment_intent.succeeded":
+        const paymentIntent = event.data.object;
+        console.log("Payment succeeded:", paymentIntent.id);
+        // Save booking to DB here if needed
+        // You can access booking details from paymentIntent.metadata
         break;
       case "payment_intent.payment_failed":
         const failedPayment = event.data.object;
