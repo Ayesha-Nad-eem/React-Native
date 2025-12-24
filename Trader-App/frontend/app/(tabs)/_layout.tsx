@@ -35,6 +35,16 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        name="booking"
+        options={{
+          title: 'Create Booking',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calendar-plus" color={color} size={size} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="admin"
         options={{
           title: 'Admin',

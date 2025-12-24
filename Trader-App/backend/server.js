@@ -22,11 +22,13 @@ const authRoutes = require("./routes/auth");
 const marketRoutes = require("./routes/market");
 const tradeRoutes = require("./routes/trade");
 const paymentRoutes = require("./routes/payment");
+const bookingRoutes = require("./routes/booking");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/market", marketRoutes);
 app.use("/api/trade", tradeRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/booking", bookingRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

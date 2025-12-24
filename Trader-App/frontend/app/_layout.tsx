@@ -2,6 +2,7 @@ import { Slot } from "expo-router";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import Constants from "expo-constants";
 import CarsProvider from "./contexts/CarsContext";
+import BookingsProvider from "./contexts/BookingsContext";
 import "./global.css";
 
 export default function RootLayout() {
@@ -11,7 +12,9 @@ export default function RootLayout() {
   return (
     <StripeProvider publishableKey={publishableKey}>
       <CarsProvider>
-        <Slot />
+        <BookingsProvider>
+          <Slot />
+        </BookingsProvider>
       </CarsProvider>
     </StripeProvider>
   );
